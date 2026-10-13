@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>N'EPS compilateur</title>
+<meta name="apple-mobile-web-app-title" content="N'EPS">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3a8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="vendor/xlsx.full.min.js"></script>
+<script>window.XLSX||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>')</script>
+<style>
+:root{--paper:#eef3fb;--sheet:#fff;--ink:#1b2440;--blue:#1f3a8a;--line:#c9d6ef;--margin:#d6455d;--mute:#5d6a8c;--ok:#1d7a4d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#141a2e;--sheet:#1c2440;--ink:#e8edfb;--blue:#8fb0ff;--line:#34406b;--margin:#ff7b8f;--mute:#9aa7cc;--ok:#5fd39a}}
+:root[data-theme="dark"]{--paper:#141a2e;--sheet:#1c2440;--ink:#e8edfb;--blue:#8fb0ff;--line:#34406b;--margin:#ff7b8f;--mute:#9aa7cc;--ok:#5fd39a}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:24px 24px;background-attachment:local}
+main{max-width:1000px;margin:0 auto;padding:16px 16px 100px 28px;position:relative;min-height:100vh}
+main::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--margin);opacity:.7}
+h1{font:800 clamp(2rem,6vw,3.2rem)/1 "Trebuchet MS","Avenir Next",system-ui,sans-serif;margin:8px 0 4px;color:var(--blue);letter-spacing:-.02em}
+h2{font:600 1.25rem "Trebuchet MS","Avenir Next",system-ui,sans-serif;margin:0 0 8px}
+.sub{color:var(--mute);margin:0 0 16px;max-width:60ch}
+nav{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+nav button{flex:1 1 140px;padding:10px 12px;border:2px solid var(--blue);background:var(--sheet);color:var(--blue);font:700 .95rem inherit;font-family:inherit;border-radius:10px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--blue);color:var(--paper)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--margin);outline-offset:2px}
+section.p{display:none;background:var(--sheet);border:2px solid var(--blue);border-radius:14px;padding:18px}
+section.p.on{display:block}
+.drop{border:3px dashed var(--blue);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--paper)}
+.drop.hot{background:var(--line)}
+.btn{display:inline-block;padding:9px 14px;border:2px solid var(--blue);background:var(--blue);color:var(--paper);border-radius:8px;font:700 .9rem inherit;font-family:inherit;cursor:pointer;margin:4px 6px 4px 0}
+.btn.alt{background:transparent;color:var(--blue)}
+.msg{margin:10px 0;padding:8px 12px;border-left:4px solid var(--ok);background:var(--paper);min-height:1em}
+.msg.err{border-color:var(--margin)}
+.scroll{overflow-x:auto;max-width:100%;margin:10px 0;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:var(--paper);position:sticky;top:0;cursor:default}
+th.s{cursor:pointer}
+tr.res td{background:var(--paper);font-weight:700;color:var(--blue)}
+select,input[type=text],textarea{font:inherit;padding:6px 8px;border:2px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink);max-width:100%}
+textarea{width:100%;min-height:70px}
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:10px 0}
+.rules label{display:flex;flex-direction:column;gap:3px;font-weight:700;font-size:.85rem}
+.step{margin:14px 0 6px;padding-left:10px;border-left:4px solid var(--margin);font-weight:700}
+ul.files{list-style:none;padding:0;margin:10px 0}
+ul.files li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+small,.mute{color:var(--mute)}
+details{margin-top:14px}
+.brand{display:flex;align-items:center;gap:12px;margin:0 0 14px}.brand img{width:56px;height:56px;border-radius:13px;border:2px solid var(--blue);background:#fff}
+.brand b{display:block;font:800 1.5rem "Trebuchet MS",system-ui,sans-serif;color:var(--blue);line-height:1.1}.brand a{color:var(--blue);font-size:.85rem}
+[hidden]{display:none!important}
+tr.fm td{background:var(--paper);min-width:150px;vertical-align:top}
+input.f{width:100%;min-width:130px;font-family:ui-monospace,Consolas,monospace;margin-bottom:4px}tr.fm select{width:100%}
+#pr{display:none}
+@media print{@page{size:landscape;margin:10mm}body>*:not(#pr){display:none!important}#pr{display:block!important}body{background:#fff!important}
+#pr,#pr *{color:#000!important;background:#fff!important}#pr table{font-size:9pt;border-collapse:collapse}#pr th,#pr td{border:1px solid #888;padding:3px 6px;white-space:normal}#pr th{font-weight:700;background:#e5e5e5!important}}
+table.g{width:auto}table.g th{position:static;vertical-align:top}table.g td{vertical-align:top}
+input.f{width:160px;min-width:0;max-width:100%}tr.fm select{width:160px;max-width:100%;display:block;margin-bottom:4px}tr.fm td{min-width:180px}
+.bulk{margin:8px 0 12px}
+.busy{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px 12px;border:2px solid var(--blue);border-radius:10px;background:var(--paper)}
+.hg{font-size:1.8rem;display:inline-block;animation:flip 1.6s ease-in-out infinite}.busy progress{flex:1;min-width:80px}
+@keyframes flip{0%{transform:rotate(0)}60%,100%{transform:rotate(180deg)}}
+@media (prefers-reduced-motion:reduce){.hg{animation:none}}
+.x{opacity:.35}
+#guide{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(320px,calc(100vw - 28px))}
+#gav{width:62px;height:62px;border-radius:50%;border:3px solid var(--blue);background:var(--sheet);padding:0;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+#gb{background:var(--sheet);color:var(--ink);border:2px solid var(--blue);border-radius:14px 14px 4px 14px;padding:12px 14px;box-shadow:0 3px 12px rgba(0,0,0,.25);font-size:.92rem}
+#gb .gs{color:var(--margin);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+#gb p{margin:4px 0 8px}#gb .btn{margin:2px 6px 2px 0;padding:6px 10px;font-size:.85rem}
+#gx{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit;font-size:.8rem;padding:0;display:block;margin-top:6px}
+@media (prefers-reduced-motion:no-preference){#gav{transition:transform .15s}#gav:hover{transform:scale(1.06)}}
+.brand img{width:auto;height:72px;border:0;border-radius:10px;background:#fff;padding:3px}
+.bulk .row{display:flex;gap:8px;margin-top:8px}.bulk .row .btn{flex:1;margin:0;padding:8px 6px;font-size:.85rem}
+.btn.on{background:var(--blue);color:var(--paper);box-shadow:0 0 0 3px var(--margin)}.btn.on::before{content:"✔ "}
+.depmsg{margin:12px 0 16px;padding:14px 16px;border-left:8px solid var(--blue);background:var(--paper);font-size:1.3rem;line-height:1.3}
+.depmsg b{font-weight:800;color:var(--blue)}.depmsg a{display:inline-block;margin-top:6px;font-weight:800;color:var(--blue)}
+#dep{margin-top:20px;padding-top:12px;border-top:3px solid var(--blue)}
+.slot{margin:10px 0;padding:10px;border:2px solid var(--line);border-radius:10px}
+.slot input[type=text]{display:block;width:100%;max-width:560px;margin:6px 0}
+.slot .st{min-height:1.4em;font-size:.9rem;color:var(--mute)}.slot .st.ok{color:var(--ok)}.slot .st.ko{color:var(--margin)}
+.slot .sb .btn{margin:4px 6px 0 0}#dpaste{margin:8px 0}
+#qrfs{position:fixed;inset:0;z-index:300;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;text-align:center}
+#qrfs .qt{font:800 clamp(1.8rem,7vw,3.2rem) system-ui,sans-serif}#qrfs canvas{image-rendering:pixelated;max-width:100%;height:auto}#qrfs .qh{font-size:1.1rem;color:#333}
+.acc{margin-top:14px}.ai{border:2px solid var(--blue);border-radius:12px;margin:10px 0;background:var(--sheet);overflow:hidden}
+.ah{display:flex;align-items:center;gap:10px;width:100%;padding:14px 12px;border:0;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.ai.open .ah{background:var(--blue);color:var(--paper)}.ac{font-size:1.2rem;width:1.2em}.at{font-weight:800;flex:1;font-size:1.05rem}.as{font-size:.85rem;opacity:.9;text-align:right}
+.ab{padding:14px}.ab #dep{margin:0;padding:0;border:0}#fdet{margin:8px 0}#ptxt{margin:8px 0}
+#scov{position:fixed;inset:0;z-index:400;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center}
+#scov video{max-width:100%;max-height:58%}#scov progress{width:min(90%,420px)}#scov .sct{font-size:1.1rem;min-height:2.6em}#scov .scn{font-weight:700}
+.msg:empty{display:none}
+</style>
+</head>
+<body>
+<main>
+<nav role="tablist">
+<button role="tab" data-t="1" aria-selected="true">1. Importer</button>
+<button role="tab" data-t="2" aria-selected="false">2. Fusionner un élève</button>
+<button role="tab" data-t="3" aria-selected="false">3. Appliquer à la classe</button>
+</nav>
+
+<section class="p on" id="p1"><div class="brand"><img src="logo-neps.png" alt="N'EPS Numérique – Académie de Nantes"><div><b>N'EPS compilateur</b><a href="mailto:sebastien.bourthoumieu@ac-nantes.fr">sebastien.bourthoumieu@ac-nantes.fr</a></div></div><p class="sub">Réunissez les lignes de chaque élève dispersées dans vos fichiers CSV et Excel, puis fusionnez-les en une seule ligne par élève.</p>
+<div class="depmsg" id="depmsg" role="note"><b>Vos élèves ont internet ? Et s'ils déposaient eux-mêmes leurs fichiers ?</b><br><a href="#dep" id="depgo">Créez un QR code de dépôt ↓</a></div>
+<div class="busy" id="busy" role="status" aria-live="polite" hidden><span class="hg" aria-hidden="true">⏳</span><span id="bt"></span><progress id="bp"></progress></div>
+<div class="msg" id="m1" aria-live="polite"></div>
+<details id="fdet"><summary id="fsum">Aucun fichier importé</summary><ul class="files" id="flist"></ul><button class="btn alt" id="clear">Tout effacer</button></details>
+<div class="acc" id="acc">
+<section class="ai open" id="a1"><button class="ah" data-a="1" aria-expanded="true" aria-controls="b1"><span class="ac">▾</span><span class="at">1. Importer depuis cette tablette</span><span class="as" id="as1"></span></button>
+<div class="ab" id="b1">
+<div class="drop" id="drop" tabindex="0">Déposez vos fichiers ici ou touchez pour les choisir<br><small>.csv, .xlsx, .xls — colonne B : classe, colonne C : « Prénom Nom »</small></div>
+<input type="file" id="file" accept=".csv,.xlsx,.xls,text/csv" multiple hidden>
+<p class="mute">Glisser-déposer, sélection dans l'explorateur de fichiers, ou collage d'un fichier copié (Ctrl+V). Sur Android, l'application installée apparaît aussi dans le menu Partager. Les fichiers déjà importés et les lignes identiques sont ignorés.</p>
+<details><summary>Coller du texte copié depuis un tableur</summary><textarea id="ptxt" placeholder="Collez ici les lignes copiées (la première ligne contient les en-têtes)"></textarea><button class="btn" id="pbtn">Importer ce texte</button></details>
+</div></section>
+<section class="ai" id="a2"><button class="ah" data-a="2" aria-expanded="false" aria-controls="b2"><span class="ac">▸</span><span class="at">2. Les élèves ont internet : QR codes de dépôt Nextcloud</span><span class="as" id="as2"></span></button>
+<div class="ab" id="b2" hidden>
+<div id="dep">
+<p class="mute">Jusqu'à 4 QR codes, un par dossier Nextcloud (classe, activité…). Vos élèves le scannent avec l'appareil photo de leur tablette et déposent leur fichier sur la page Nextcloud.</p>
+<div id="slots"></div>
+<div class="msg" id="dm" aria-live="polite" hidden></div>
+<button class="btn alt" id="dcopy">Copier la liste de mes liens</button>
+<details><summary>Restaurer une liste copiée</summary><textarea id="dpaste" placeholder="Collez ici la liste copiée (un lien par ligne)"></textarea><button class="btn" id="drest">Restaurer</button></details>
+<details open>
+<summary><b>Comment créer le lien dans Nextcloud ?</b></summary>
+<ol>
+<li>Dans Nextcloud, créez un dossier (par exemple « 6A – endurance »).</li>
+<li>Cliquez sur Partager, puis sur le + de « Partager le lien ».</li>
+<li>Choisissez <b>« Dépôt de fichiers »</b> : les élèves déposent sans voir ni supprimer. Jamais « Lecture seule » ni « Peut modifier ». Le libellé peut varier selon votre version.</li>
+<li>Copiez le lien et collez-le dans un emplacement ci-dessus, avec le nom de votre choix.</li>
+<li>Cliquez sur « Tester », idéalement dans une fenêtre de navigation privée : une zone de dépôt, c'est bon ; une liste de fichiers, le partage est mal réglé.</li>
+<li>Montrez le « QR plein écran » à la classe. Votre tablette l'affiche sans internet, mais les élèves en ont besoin pour déposer.</li>
+<li>Pour récupérer les fichiers : choisissez-les dans Nextcloud avec le sélecteur de fichiers de cette tablette (application Nextcloud installée), puis importez-les dans le volet 1. Les doublons sont ignorés.</li>
+</ol>
+<p class="mute">Le lien ne contient aucun mot de passe : toute personne qui le possède peut y déposer. S'il circule trop, supprimez le partage dans Nextcloud et créez-en un autre. Vos liens sont conservés sur cette tablette ; installez l'application sur l'écran d'accueil et utilisez « Copier la liste de mes liens » comme secours. Effacer les données du navigateur les supprime.</p>
+</details>
+</div>
+</div></section>
+<section class="ai" id="a3"><button class="ah" data-a="3" aria-expanded="false" aria-controls="b3"><span class="ac">▸</span><span class="at">3. Les élèves n'ont pas internet : scanner leurs QR codes</span><span class="as" id="as3"></span></button>
+<div class="ab" id="b3" hidden>
+<p>Chaque élève ouvre son application et touche <b>« Mon QR code »</b>. Scannez son écran avec la caméra de cette tablette, un élève après l'autre : <b>aucun internet n'est nécessaire</b>, ni pour vous ni pour eux.</p>
+<button class="btn" id="sbtn">Scanner un élève</button>
+<div class="msg" id="sm" aria-live="polite" hidden></div>
+<p class="mute">Tous les élèves doivent avoir les mêmes en-têtes : un élève dont les en-têtes diffèrent est refusé. Un élève déjà scanné est reconnu et ignoré. Sur Android avec Chrome, la lecture est intégrée ; sur iPad, elle demande le fichier jsQR.js dans le dossier vendor (voir le mode d'emploi).</p>
+</div></section>
+</div>
+</section>
+
+<section class="p" id="p2"><div class="brand"><img src="logo-neps.png" alt="N'EPS Numérique – Académie de Nantes"><div><b>N'EPS compilateur</b></div></div><h2>Fusionner les lignes d'un élève</h2>
+<div id="s1"></div>
+<div id="s2" hidden>
+<label>Élève <select id="stu"></select></label>
+<div class="step">Étape 2 — Lignes de l'élève, puis formule de chaque colonne</div>
+<p class="mute">Sous chaque colonne, choisissez une formule dans la liste. Pour aller plus loin, choisissez « ✎ Formule libre… » et écrivez-la comme dans un tableur : <code>=SOMME(D1:D3)</code>, <code>=(MOYENNE(D)+MOYENNE(E))/2</code>, <code>=D1-D2</code> (D1 = colonne D, ligne n°1 de l'élève). La ligne « Résultat » est la ligne unique de l'élève.</p>
+<div class="bulk"><label>Appliquer un même choix à toutes les colonnes <select id="bulk"><option value="">(vide)</option><option value="MOYENNE">Moyenne</option><option value="SOMME">Somme</option><option value="MIN">Minimum</option><option value="MAX">Maximum</option><option value="MEDIANE">Médiane</option><option value="ECARTYPE">Écart type</option><option value="ECARTYPEP">Écart type (population)</option><option value="PREMIER">Première valeur</option><option value="DERNIER">Dernière valeur</option><option value="NB">Nombre de valeurs</option><option value="REUNIR">Réunir (texte)</option></select></label><div class="row"><button class="btn alt" id="bAll" aria-pressed="false">Toutes les colonnes</button><button class="btn alt" id="bNum" aria-pressed="false">Colonnes numériques seulement</button></div><small>Les colonnes Nom et Classe ne sont pas modifiées.</small></div>
+<div class="scroll" id="grid"></div>
+<button class="btn alt" id="xadd">+ Ajouter une colonne</button>
+</div>
+</section>
+
+<section class="p" id="p3"><div class="brand"><img src="logo-neps.png" alt="N'EPS Numérique – Académie de Nantes"><div><b>N'EPS compilateur</b></div></div>
+<h2>Appliquer à toute la classe</h2>
+<p class="sub">Les choix de l'étape précédente sont appliqués à chaque élève, classés par ordre alphabétique. Touchez un en-tête pour trier.</p>
+<label>Classe <select id="cls"></select></label>
+<br><label>Dernière colonne exportée <select id="lastc"></select></label><br><small>Les colonnes au-delà (grisées dans le tableau) ne sont pas exportées en CSV, Excel, PDF ni copiées.</small><br><button class="btn" id="csv">Exporter en CSV</button><button class="btn" id="xlsx">Exporter en Excel</button><button class="btn" id="pdf">Exporter en PDF</button><button class="btn alt" id="copy">Copier</button>
+<div class="busy" id="busy3" role="status" aria-live="polite" hidden><span class="hg" aria-hidden="true">⏳</span><span id="bt3"></span><progress id="bp3"></progress></div>
+<div class="msg" id="m3" aria-live="polite"></div>
+<div class="scroll" id="all"></div>
+</section>
+<p class="mute" hidden><a href="#" id="gshow">Afficher le guide</a></p>
+</main>
+<div id="guide" role="complementary" aria-label="Guide d'utilisation"><div id="gb" hidden><div id="gt"></div></div><button id="gav" aria-label="Ouvrir ou fermer le guide"><svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#1f3a8a"/><path d="M10 27a22 22 0 0 1 44 0z" fill="#f6c944"/><rect x="8" y="26" width="48" height="5" rx="2.5" fill="#0aa0b5"/><circle cx="24" cy="39" r="3" fill="#fff"/><circle cx="40" cy="39" r="3" fill="#fff"/><path d="M23 48q9 7 18 0" stroke="#f6c944" stroke-width="3" fill="none" stroke-linecap="round"/></svg></button></div>
+<script>
+(function(){
+var KEY="bilan-classe-v1",S={files:[],rows:[],head:[],rules:{},calc:[],nameCol:2,classCol:1,ok:false,extra:[],free:{}},sortCol=null,sortDir=1;
+var $=function(i){return document.getElementById(i)};
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var letter=function(i){return String.fromCharCode(65+i)};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{var d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){S=d;S.extra=S.extra||[];S.free=S.free||{};if(S.nameCol==null){S.nameCol=2;S.classCol=1;S.ok=true}}}catch(e){}}
+function key(n){return String(n).trim().replace(/\s+/g," ").toLowerCase()}
+function num(x){if(typeof x==="number")return x;var t=String(x==null?"":x).trim().replace(",",".");return t===""?NaN:Number(t)}
+function r2(x){return Math.round(x*100)/100}
+async function sha(buf){try{var h=await crypto.subtle.digest("SHA-256",buf);return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}catch(e){var a=new Uint8Array(buf),x=5381;for(var i=0;i<a.length;i++)x=((x<<5)+x+a[i])|0;return"h"+x+"-"+a.length}}
+function hstr(s){var x=5381;for(var i=0;i<s.length;i++)x=((x<<5)+x+s.charCodeAt(i))|0;return x}
+
+
+/* Import */
+var W=[],P={},Q=[],nid=0,noW=false;
+var WSRC=null;
+function WURL(){var x=document.getElementById("xl");if(x&&WSRC)return URL.createObjectURL(new Blob([x.textContent+"\n"+WSRC],{type:"text/javascript"}));return"worker.js"}
+function parseMain(buf){var wb=XLSX.read(buf,{type:"array",codepage:65001,raw:true});return wb.SheetNames.map(function(n){return XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""})})}
+function pump(){while(Q.length){var w=null;for(var i=0;i<W.length;i++)if(!W[i].b){w=W[i];break}if(!w)return;var id=Q.shift();w.b=id;w.postMessage({id:id,buf:P[id].buf})}}
+function fallback(){noW=true;W.forEach(function(w){w.terminate()});W=[];Q=[];Object.keys(P).forEach(function(id){var p=P[id];delete P[id];try{p.res(parseMain(p.buf))}catch(e){p.rej(String(e))}})}
+function parse(buf){
+ if(noW||!window.Worker)return new Promise(function(res,rej){setTimeout(function(){try{res(parseMain(buf))}catch(e){rej(e)}},0)});
+ if(!W.length){try{var n=Math.min(4,Math.max(1,(navigator.hardwareConcurrency||2)-1));
+  for(var i=0;i<n;i++){var w=new Worker(WURL());w.b=0;
+   w.onmessage=function(e){var d=e.data,p=P[d.id];this.b=0;delete P[d.id];if(p){if(d.error)p.rej(d.error);else p.res(d.sheets)}pump()};
+   w.onerror=function(e){if(e.preventDefault)e.preventDefault();fallback()};W.push(w)}}catch(e){noW=true;return parse(buf)}}
+ return new Promise(function(res,rej){var id=++nid;P[id]={res:res,rej:rej,buf:buf};Q.push(id);pump()});
+}
+function spin(on,t,v,m){var b=$("busy");b.hidden=!on;if(!on)return;$("bt").textContent=t||"";var p=$("bp");if(m){p.max=m;p.value=v||0}else p.removeAttribute("value")}
+async function prep(name,buf){
+ var h=await sha(buf);
+ if(S.files.some(function(f){return f.hash===h}))return{name:name,skip:"déjà importé"};
+ try{return{name:name,hash:h,sheets:await parse(buf)}}catch(e){return{name:name,skip:"illisible"}}
+}
+function merge(p){
+ if(p.skip)return p;
+ if(S.files.some(function(f){return f.hash===p.hash}))return{name:p.name,skip:"déjà importé"};
+ var seen={},i;for(i=0;i<S.rows.length;i++)seen[S.rows[i].h]=1;
+ var added=0,dup=0,fh=null;
+ p.sheets.forEach(function(a){
+  if(!a.length)return;
+  if(!fh)fh=a[0].map(function(x,j){return String(x||"Colonne "+letter(j))});
+  if(!S.head.length)S.head=fh.slice();
+  a.slice(1).forEach(function(r){
+   if(!r.some(function(x){return String(x).trim()!==""}))return;
+   var n=String(r[S.nameCol]==null?"":r[S.nameCol]).trim();
+   var hh=hstr(JSON.stringify(r));
+   if(seen[hh]){dup++;return}
+   seen[hh]=1;added++;S.rows.push({f:p.name,h:hh,k:key(n),c:r})});
+ });
+ S.files.push({name:p.name,hash:p.hash,n:added,head:fh||[]});
+ return{name:p.name,added:added,dup:dup};
+}
+async function ingest(name,buf){return merge(await prep(name,buf))}
+var tick=function(){return new Promise(function(r){setTimeout(r,30)})};
+async function handle(list){
+ if(!list.length)return;
+ var done=0,N=list.length;
+ spin(true,"Lecture de "+N+" fichier(s)…",0,N);await tick();
+ try{
+  var preps=await Promise.all(list.map(async function(f){var p;try{p=await prep(f.name,await f.arrayBuffer())}catch(e){p={name:f.name,skip:"illisible"}}done++;spin(true,"Analyse des fichiers… "+done+"/"+N,done,N);return p}));
+  spin(true,"Fusion des lignes et mise à jour de l'affichage…");await tick();
+  finish(preps.map(merge));
+ }finally{spin(false)}
+}
+function finish(out){
+ normalizeRules();save();render();
+ $("m1").className="msg";
+ $("m1").textContent=out.map(function(o){return o.skip?o.name+" : "+o.skip:o.name+" : "+o.added+" ligne(s) ajoutée(s)"+(o.dup?", "+o.dup+" doublon(s) ignoré(s)":"")}).join(" — ")||"Rien à importer.";
+}
+$("drop").onclick=function(){$("file").click()};
+$("drop").onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();$("file").click()}};
+$("file").onchange=function(e){handle(Array.from(e.target.files));e.target.value=""};
+["dragover","dragenter"].forEach(function(t){$("drop").addEventListener(t,function(e){e.preventDefault();$("drop").classList.add("hot")})});
+["dragleave","drop"].forEach(function(t){$("drop").addEventListener(t,function(e){e.preventDefault();$("drop").classList.remove("hot")})});
+$("drop").addEventListener("drop",function(e){handle(Array.from(e.dataTransfer.files))});
+$("clear").onclick=function(){if(confirm("Effacer tous les fichiers et lignes importés ?")){S={files:[],rows:[],head:[],rules:{},calc:[],nameCol:2,classCol:1,ok:false,extra:[],free:{}};save();render();$("m1").textContent="Données effacées."}};
+
+/* Formules */
+var FN={MOYENNE:"avg",SOMME:"sum",MIN:"min",MAX:"max",NB:"count",PREMIER:"first",DERNIER:"last",REUNIR:"join",MEDIANE:"med",ECARTYPE:"sd",ECARTYPEP:"sdp"};
+var MENU=[["MOYENNE","Moyenne"],["SOMME","Somme"],["MIN","Minimum"],["MAX","Maximum"],["MEDIANE","Médiane"],["ECARTYPE","Écart type"],["ECARTYPEP","Écart type (population)"],["PREMIER","Première valeur"],["DERNIER","Dernière valeur"],["NB","Nombre de valeurs"],["REUNIR","Réunir (texte)"]];
+var OLD={first:"PREMIER",last:"DERNIER",avg:"MOYENNE",sum:"SOMME",min:"MIN",max:"MAX",count:"NB",join:"REUNIR"};
+function ncol(){return S.head.length+S.extra.length}
+function cname(i){return i<S.head.length?S.head[i]:S.extra[i-S.head.length]}
+function heads(){var h=[];for(var i=0;i<ncol();i++)h.push(cname(i));return h}
+function normalizeRules(){
+ for(var i=0;i<ncol();i++){
+  var r=S.rules[i];
+  if(OLD[r]){S.rules[i]="="+OLD[r]+"("+letter(i)+")";continue}
+  if(r!=null)continue;
+  if(i>=S.head.length){S.rules[i]="";continue}
+  var v=S.rows.map(function(x){return x.c[i]}).filter(function(x){return x!==""&&x!=null}),n=v.filter(function(x){return!isNaN(num(x))}).length;
+  S.rules[i]="="+(i!==S.nameCol&&i!==S.classCol&&v.length&&n/v.length>.6?"MOYENNE":"PREMIER")+"("+letter(i)+")";
+ }
+}
+function agg(vals,op){
+ var v=[],n=[],s=0,i,x,y;
+ for(i=0;i<vals.length;i++){x=vals[i];if(x===""||x==null)continue;v.push(x);y=num(x);if(!isNaN(y)){n.push(y);s+=y}}
+ if(op==="first")return v.length?v[0]:"";if(op==="last")return v.length?v[v.length-1]:"";
+ if(op==="count")return v.length;if(op==="join")return v.join(" | ");
+ if(!n.length)return"";
+ if(op==="sd"||op==="sdp"){var dd=op==="sd"?n.length-1:n.length;if(dd<1)return"";var mu=s/n.length,q=0;for(i=0;i<n.length;i++)q+=(n[i]-mu)*(n[i]-mu);return r2(Math.sqrt(q/dd))}
+ if(op==="avg")return r2(s/n.length);if(op==="sum")return r2(s);
+ if(op==="min")return Math.min.apply(null,n);if(op==="max")return Math.max.apply(null,n);
+ if(op==="med"){n.sort(function(a,b){return a-b});var m=n.length>>1;return n.length%2?n[m]:r2((n[m-1]+n[m])/2)}
+ return"";
+}
+/* Formules : compilées une seule fois, puis réutilisées pour chaque élève */
+var CC={};
+function colIdx(L){return L.charCodeAt(0)-65}
+function argSpec(a){
+ a=a.trim().toUpperCase();var m;
+ if(m=a.match(/^([A-Z])$/)){var c=colIdx(m[1]);return function(rows){var o=[];for(var i=0;i<rows.length;i++)o.push(rows[i].c[c]);return o}}
+ if(m=a.match(/^([A-Z])(\d+):([A-Z])(\d+)$/)){var c1=colIdx(m[1]),c2=colIdx(m[3]),ra=+m[2],rb=+m[4];return function(rows){var o=[];for(var r=ra;r<=rb;r++)for(var k=Math.min(c1,c2);k<=Math.max(c1,c2);k++){var x=rows[r-1];o.push(x?x.c[k]:"")}return o}}
+ if(m=a.match(/^([A-Z])(\d+)$/)){var cc=colIdx(m[1]),rr=+m[2]-1;return function(rows){var x=rows[rr];return[x?x.c[cc]:""]}}
+ return function(){return[]}
+}
+function compile(f){
+ f=String(f==null?"":f).trim();
+ if(CC[f])return CC[f];
+ var fn;
+ if(f.charAt(0)!=="="){fn=function(){return f}}
+ else{
+  var e=f.slice(1).trim(),A=[],C=[];
+  if(!e)fn=function(){return""};
+  else{
+   e=e.replace(/(MOYENNE|SOMME|MIN|MAX|NB|PREMIER|DERNIER|REUNIR|MEDIANE|ECARTYPEP|ECARTYPE)\(([^()]*)\)/gi,function(m,name,a){
+    var op=FN[name.toUpperCase()],gs=a.split(";").map(argSpec);
+    A.push(function(rows){var v=[];for(var i=0;i<gs.length;i++)v=v.concat(gs[i](rows));return agg(v,op)});
+    return"(@"+(A.length-1)+")"});
+   var m1=e.match(/^\(@(\d+)\)$/);
+   if(m1){var a0=A[+m1[1]];fn=function(rows){var v=a0(rows);return typeof v==="number"?(isFinite(v)?r2(v):""):v}}
+   else if(/^[A-Za-z]\d+$/.test(e)){var g0=argSpec(e);fn=function(rows){var q=g0(rows)[0];return q==null?"":q}}
+   else{
+    e=e.replace(/\b([A-Za-z]\d+)\b/g,function(m,r){C.push(argSpec(r));return"(#"+(C.length-1)+")"});
+    if(!/^[0-9+\-*\/().\s@#]*$/.test(e))fn=function(){return"#ERREUR"};
+    else{
+     var body=e.replace(/@(\d+)/g,"Nn(A[$1](rows))").replace(/#(\d+)/g,"Nn(C[$1](rows)[0])"),g;
+     try{g=new Function("A","C","Nn","rows",'"use strict";return ('+body+')')}catch(x){g=null}
+     fn=g?function(rows){try{var v=g(A,C,num,rows);return isFinite(v)?r2(v):""}catch(x){return"#ERREUR"}}:function(){return"#ERREUR"}
+    }
+   }
+  }
+ }
+ CC[f]=fn;return fn;
+}
+function evalF(f,rows){return compile(f)(rows)}
+function line(rows){var o=[];for(var i=0;i<ncol();i++)o.push(evalF(S.rules[i],rows));return o}
+function tbl(h,rows,cls){
+ return'<table><thead><tr>'+h.map(function(x,i){return'<th'+(cls?' class="s" data-i="'+i+'"':'')+'>'+letter(i)+" · "+esc(x)+'</th>'}).join("")+'</tr></thead><tbody>'+rows.join("")+'</tbody></table>';
+}
+function tr(c,cls){return'<tr'+(cls?' class="'+cls+'"':'')+'>'+c.map(function(x){return'<td>'+esc(x)+'</td>'}).join("")+'</tr>'}
+
+/* Rendu */
+var G=null;function grp(){if(!G){G={};S.rows.forEach(function(r){if(r.k)(G[r.k]=G[r.k]||[]).push(r)})}return G}
+function names(cls){var g=grp(),o=[];Object.keys(g).forEach(function(k){var r=g[k][0];if(cls&&String(r.c[S.classCol]).trim()!==cls)return;o.push([k,String(r.c[S.nameCol]).trim().replace(/\s+/g," ")])});return o.sort(function(a,b){return a[0].localeCompare(b[0],"fr")})}
+function sample(i,n){var o=[];for(var j=0;j<S.rows.length&&o.length<n;j++){var x=String(S.rows[j].c[i]==null?"":S.rows[j].c[i]).trim();if(x&&o.indexOf(x)<0)o.push(x)}return o.join(", ")}
+function detect(){
+ var H=S.head.length,rows=S.rows.slice(0,500),A=[],B=[],i;
+ for(i=0;i<H;i++){
+  var h=S.head[i],v=rows.map(function(r){return String(r.c[i]==null?"":r.c[i]).trim()}).filter(Boolean);
+  if(!v.length){A.push(0);B.push(0);continue}
+  var sp=v.filter(function(x){return/^[^\d]{2,}\s+[^\d]{2,}$/.test(x)}).length/v.length;
+  var cl=v.filter(function(x){return x.length<=7&&/\d/.test(x)&&/[A-Za-zè]/.test(x)}).length/v.length;
+  var u=new Set(v).size;
+  A.push(sp*2+(/nom|élève|eleve|prénom|prenom|name/i.test(h)?2:0));
+  B.push(cl*1.5+(u<=15&&u<v.length?.5:0)+(/classe|groupe|section/i.test(h)?2:0));
+ }
+ var n=2,c=1,bn=.8,bc=.8;
+ for(i=0;i<H;i++)if(A[i]>bn){bn=A[i];n=i}
+ for(i=0;i<H;i++)if(i!==n&&B[i]>bc){bc=B[i];c=i}
+ return[n,c];
+}
+function render1(){
+ var el=$("s1");
+ if(!S.rows.length){el.innerHTML='<p class="mute">Importez d\'abord des fichiers dans le panneau 1.</p>';$("s2").hidden=true;return}
+ if(!S.ok&&!S.touched){var d=detect();S.nameCol=d[0];S.classCol=d[1]}
+ var H=S.head.length;S.files.forEach(function(f){H=Math.max(H,(f.head||[]).length)});
+ var sel=function(id,cur){var o="";for(var i=0;i<S.head.length;i++){var ex=sample(i,2);o+='<option value="'+i+'"'+(i===cur?" selected":"")+'>'+letter(i)+" · "+esc(S.head[i])+(ex?" (ex. "+esc(ex)+")":"")+'</option>'}return'<select id="'+id+'">'+o+'</select>'};
+ var t='<table><thead><tr><th>Fichier</th>';
+ for(var i=0;i<H;i++)t+='<th>'+letter(i)+(i===S.nameCol?" ✔ NOM":i===S.classCol?" ✔ CLASSE":"")+'</th>';
+ t+='</tr></thead><tbody>'+S.files.map(function(f){var h=f.head&&f.head.length?f.head:S.head,c='<tr><td><b>'+esc(f.name)+'</b></td>';for(var i=0;i<H;i++)c+='<td>'+esc(h[i]==null?"":h[i])+'</td>';return c+'</tr>'}).join("")+'</tbody></table>';
+ el.innerHTML='<div class="step">Étape 1 — En-têtes de vos fichiers, tels qu\'ils sont</div><div class="scroll">'+t+'</div>'+
+ (S.ok?'<div class="msg">Noms : colonne <b>'+letter(S.nameCol)+'</b> — Classe : colonne <b>'+letter(S.classCol)+'</b> <button class="btn alt" id="redo">Modifier</button></div>'
+ :'<p>'+(S.touched?'Vérifiez vos choix :':'Colonnes reconnues automatiquement. Vérifiez-les et corrigez si besoin :')+'</p><label>Noms (« Prénom Nom ») '+sel("selN",S.nameCol)+'</label><br><label>Classe '+sel("selC",S.classCol)+'</label><br><button class="btn" id="okc">Valider ces colonnes</button>');
+ $("s2").hidden=!S.ok;
+}
+function render(){G=null;setTimeout(guide,0);accSt();
+ $("flist").innerHTML=S.files.map(function(f){return"<li><span>"+esc(f.name)+"</span><small>"+f.n+" ligne(s)</small></li>"}).join("");
+ if(!S.files.length)$("m1").textContent="";
+ var cl={};S.rows.forEach(function(r){if(r.k)cl[String(r.c[S.classCol]==null?"":r.c[S.classCol]).trim()]=1});
+ var cv0=$("cls").value;
+ $("cls").innerHTML='<option value="">Toutes</option>'+Object.keys(cl).sort().map(function(c){return'<option>'+esc(c)+'</option>'}).join("");
+ $("cls").value=cv0;
+ render2();render3();
+}
+function std(i){var m=String(S.rules[i]||"").match(/^=([A-Z]+)\(([A-Z])\)$/);return m&&FN[m[1]]&&m[2]===letter(i)?m[1]:null}
+function isNumCol(i){var v=S.rows.map(function(x){return x.c[i]}).filter(function(x){return x!==""&&x!=null});return v.length>0&&v.filter(function(x){return!isNaN(num(x))}).length/v.length>.6}
+function render2(){
+ render1();
+ if(!S.ok)return;
+ var sv=$("stu").value;
+ $("stu").innerHTML=names("").map(function(n){return'<option value="'+esc(n[0])+'">'+esc(n[1])+'</option>'}).join("");
+ if(sv)$("stu").value=sv;
+ var rows=grp()[$("stu").value]||[],H=S.head.length,N=ncol(),i;
+ var h='<table class="g"><thead><tr><th>#</th>';
+ for(i=0;i<N;i++)h+='<th>'+letter(i)+' · '+(i<H?esc(S.head[i]):'<input type="text" class="f" data-x="'+(i-H)+'" value="'+esc(cname(i))+'">')+'</th>';
+ h+='</tr></thead><tbody>'+rows.map(function(r,j){var c='<tr><td><b>'+(j+1)+'</b> <small>'+esc(r.f)+'</small></td>';for(var i=0;i<N;i++)c+='<td>'+esc(i<H?r.c[i]:"")+'</td>';return c+'</tr>'}).join("");
+ h+='<tr class="fm"><td><b>Formule</b></td>';
+ for(i=0;i<N;i++){
+  var sd=std(i),fr=S.free[i]||(!sd&&S.rules[i]!==""&&S.rules[i]!=null);
+  h+='<td><select data-m="'+i+'" aria-label="Formule colonne '+letter(i)+'"><option value="">(vide)</option>'+MENU.map(function(q){return'<option value="'+q[0]+'"'+(!fr&&sd===q[0]?" selected":"")+'>'+q[1]+'</option>'}).join("")+'<option value="__c"'+(fr?" selected":"")+'>✎ Formule libre…</option></select>'+(fr?'<input type="text" class="f" data-f="'+i+'" value="'+esc(S.rules[i])+'" placeholder="=MOYENNE('+letter(i)+')" aria-label="Formule libre colonne '+letter(i)+'">':'')+'</td>';
+ }
+ h+='</tr>'+tr(["Résultat"].concat(line(rows)),"res")+'</tbody></table>';
+ $("grid").innerHTML=h;bulkUI();
+}
+function lastIdx(){var n=ncol()-1;return S.lastCol==null||S.lastCol>n?n:S.lastCol}
+var DATA=null,SIG="",TOK=0;
+function sig3(cls){return cls+"|"+JSON.stringify(S.rules)+"|"+JSON.stringify(S.extra)+"|"+S.rows.length+"|"+S.files.length+"|"+S.nameCol+"|"+S.classCol}
+function spin3(on,i,n,t0){var b=$("busy3");if(!on){b.hidden=true;return}if(Date.now()-t0<200)return;b.hidden=false;
+ $("bt3").textContent=(i<0?"Mise en page du tableau…":"Calcul des lignes… "+i+"/"+n+" élèves")+" · "+Math.floor((Date.now()-t0)/1000)+" s";
+ var p=$("bp3");if(i<0)p.removeAttribute("value");else{p.max=n;p.value=i}}
+function paint(){
+ var data=DATA.slice(),hs=heads(),li=lastIdx(),N=hs.length,i;
+ if(sortCol!==null)data.sort(function(a,b){var x=a[sortCol],y=b[sortCol],nx=num(x),ny=num(y);return(!isNaN(nx)&&!isNaN(ny)?nx-ny:String(x).localeCompare(String(y),"fr"))*sortDir});
+ var h='<table><thead><tr>'+hs.map(function(t,i){return'<th class="s'+(i>li?" x":"")+'" data-i="'+i+'">'+letter(i)+" · "+esc(t)+'</th>'}).join("")+'</tr></thead><tbody>';
+ var b=[];for(var r=0;r<data.length;r++){var c="<tr>";for(i=0;i<N;i++)c+="<td"+(i>li?' class="x"':"")+">"+esc(data[r][i])+"</td>";b.push(c+"</tr>")}
+ $("all").innerHTML=h+b.join("")+"</tbody></table>";
+ $("all").dataset.j=JSON.stringify(data);
+ $("lastc").innerHTML=hs.map(function(t,i){return'<option value="'+i+'"'+(i===li?" selected":"")+'>'+letter(i)+" · "+esc(t)+'</option>'}).join("");
+ $("m3").textContent=data.length+" élève(s) — une ligne chacun. Export : colonnes A à "+letter(li)+".";
+}
+function render3(){
+ if(!S.ok){$("all").innerHTML='<p style="padding:10px" class="mute">Validez d\'abord les colonnes dans le panneau 2.</p>';$("m3").textContent="";return}
+ if(curTab()!=="3")return; /* calcul différé : il se fait à l'ouverture du panneau */
+ var cls=$("cls").value,list=names(cls),my=++TOK;
+ if(!list.length){$("all").innerHTML='<p style="padding:10px" class="mute">Aucun élève pour le moment.</p>';DATA=null;spin3(false);return}
+ var sg=sig3(cls);
+ if(DATA&&SIG===sg&&DATA.length===list.length){paint();spin3(false);return}
+ var g=grp(),out=[],i=0,t0=Date.now();
+ (function step(){
+  if(my!==TOK)return;
+  var t=Date.now();
+  while(i<list.length&&Date.now()-t<14){out.push(line(g[list[i][0]]));i++}
+  if(i<list.length){spin3(true,i,list.length,t0);setTimeout(step,0);return}
+  DATA=out;SIG=sg;spin3(true,-1,0,t0);
+  setTimeout(function(){if(my!==TOK)return;paint();spin3(false)},0);
+ })();
+}
+$("stu").onchange=render2;$("cls").onchange=render3;
+$("all").onclick=function(e){var th=e.target.closest("th");if(!th||th.dataset.i==null)return;var i=+th.dataset.i;sortDir=sortCol===i?-sortDir:1;sortCol=i;render3()};
+$("s1").onchange=function(e){if(e.target.id==="selN"||e.target.id==="selC"){S.nameCol=+$("selN").value;S.classCol=+$("selC").value;S.touched=true;save();render1()}};
+$("s1").onclick=function(e){var id=e.target.id;
+ if(id==="okc"){S.ok=true;S.rows.forEach(function(r){r.k=key(r.c[S.nameCol]==null?"":r.c[S.nameCol])});[S.nameCol,S.classCol].forEach(function(i){S.rules[i]="=PREMIER("+letter(i)+")"});save();render()}
+ if(id==="redo"){S.ok=false;S.touched=true;save();render()}};
+$("grid").onchange=function(e){var t=e.target,d=t.dataset;
+ if(d.m!=null){var i=+d.m;
+  if(t.value==="__c"){S.free[i]=true;if(!S.rules[i])S.rules[i]="="}
+  else{S.free[i]=false;S.rules[i]=t.value?"="+t.value+"("+letter(i)+")":""}}
+ else if(d.f!=null)S.rules[d.f]=t.value;
+ else if(d.x!=null)S.extra[+d.x]=t.value;
+ else return;
+ S.bulkMode=null;save();render2();render3()};
+function bulkUI(){var a=S.bulkMode==="all",n=S.bulkMode==="num";$("bAll").classList.toggle("on",a);$("bNum").classList.toggle("on",n);$("bAll").setAttribute("aria-pressed",a);$("bNum").setAttribute("aria-pressed",n);if(S.bulkOp!=null)$("bulk").value=S.bulkOp}
+function bulk(op,numOnly){S.bulkMode=numOnly?"num":"all";S.bulkOp=op;for(var i=0;i<S.head.length;i++){if(i===S.nameCol||i===S.classCol)continue;if(numOnly&&!isNumCol(i))continue;S.free[i]=false;S.rules[i]=op?"="+op+"("+letter(i)+")":""}save();render2();render3()}
+$("bAll").onclick=function(){bulk($("bulk").value,false)};
+$("bNum").onclick=function(){bulk($("bulk").value,true)};
+$("xadd").onclick=function(){S.extra.push("Colonne "+(S.extra.length+1));normalizeRules();save();render2();render3()};
+$("copy").onclick=async function(){
+ var t=tab().map(function(r){return r.join("\t")}).join("\n");
+ try{await navigator.clipboard.writeText(t);$("m3").className="msg";$("m3").textContent="Tableau copié. Collez-le dans Excel, Numbers ou Sheets."}
+ catch(e){$("m3").className="msg err";$("m3").textContent="Copie impossible ici : sélectionnez le tableau et copiez-le manuellement."}
+};
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){
+ document.querySelectorAll("nav button").forEach(function(x){x.setAttribute("aria-selected",x===b)});
+ document.querySelectorAll("section.p").forEach(function(s){s.classList.toggle("on",s.id==="p"+b.dataset.t)});
+ if(b.dataset.t==="2")render2();if(b.dataset.t==="3")render3();guide();
+}});
+load();
+normalizeRules();render();
+function tab(){var n=lastIdx()+1,t=[heads()].concat(JSON.parse($("all").dataset.j||"[]"));return t.map(function(r){return r.slice(0,n)})}
+function dl(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},4000)}
+$("csv").onclick=function(){var t=tab().map(function(r){return r.map(function(x){x=String(x==null?"":x);return/[";\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x}).join(";")}).join("\r\n");dl(new Blob(["\ufeff"+t],{type:"text/csv"}),"bilan-classe.csv")};
+$("xlsx").onclick=function(){var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tab()),"Bilan");dl(new Blob([XLSX.write(wb,{type:"array",bookType:"xlsx"})],{type:"application/octet-stream"}),"bilan-classe.xlsx")};
+$("pdf").onclick=function(){var d=document.createElement("div");d.id="pr";var c=$("cls").value;d.innerHTML="<h2>N'EPS compilateur — Bilan"+(c?" — classe "+esc(c):"")+"</h2>"+(function(){var t=tab();return tbl(t[0],t.slice(1).map(function(r){return tr(r)}))})();document.body.appendChild(d);window.print()};
+window.addEventListener("afterprint",function(){var d=$("pr");if(d)d.remove()});
+$("lastc").onchange=function(){S.lastCol=+this.value;save();render3()};
+var gh=false;try{gh=localStorage.getItem(KEY+"-g")==="0"}catch(e){}
+function curTab(){var b=document.querySelector('nav button[aria-selected="true"]');return b?b.dataset.t:"1"}
+function guide(){
+ var t=curTab(),nf=S.files.length,nr=S.rows.length,st,tx,go="",gl="";
+ if(t==="1"){st="Étape 1 sur 3 · Importer";
+  if(AO===3){tx="Chaque élève ouvre « Mon QR code » dans son application. Scannez son écran, attendez le signal ✔, puis passez au suivant. Aucun internet n'est nécessaire."}
+  else if(AO===2){tx="Créez un dossier Nextcloud avec « Dépôt de fichiers », collez le lien dans un emplacement, testez-le, puis montrez le QR plein écran. Les élèves ont besoin d'internet pour déposer."}
+  else if(!nf&&!hasDep()){tx="Bonjour ! Importez vos fichiers ci-dessus. Vos élèves ont internet ? Ils peuvent déposer eux-mêmes leurs fichiers dans votre Nextcloud : créez un QR code dans le volet 2 ci-dessous (votre tablette l'affiche sans internet ; eux en ont besoin pour déposer).";go="qr";gl="Voir les QR codes"}
+  else if(!nf)tx="Bonjour ! Déposez ou choisissez vos fichiers CSV ou Excel. Ceux déjà importés sont ignorés automatiquement.";
+  else{tx=nf+" fichier(s), "+nr+" ligne(s) importée(s). Ajoutez-en d'autres si besoin, sinon passez à la suite.";go="2";gl="Passer au panneau 2"}}
+ else if(t==="2"){st="Étape 2 sur 3 · Fusionner un élève";
+  if(!nr){tx="Rien à fusionner pour l'instant : importez d'abord vos fichiers.";go="1";gl="Retour à l'import"}
+  else if(!S.ok)tx="Vérifiez que les colonnes Nom et Classe proposées sont les bonnes, corrigez si besoin, puis validez.";
+  else{tx="Choisissez un élève, puis une formule sous chaque colonne (ou appliquez le même choix à toutes). La ligne Résultat sera sa ligne unique.";go="3";gl="Appliquer à la classe"}}
+ else{st="Étape 3 sur 3 · Classe entière";
+  if(!S.ok){tx="Validez d'abord les colonnes Nom et Classe dans le panneau 2.";go="2";gl="Aller au panneau 2"}
+  else tx="Contrôlez le tableau, choisissez la dernière colonne à exporter, puis exportez en CSV, Excel ou PDF."}
+ $("gt").innerHTML='<div class="gs">'+st+'</div><p>'+esc(tx)+'</p>'+(go?'<button class="btn" data-go="'+go+'">'+gl+'</button>':'')+'<button id="gx">Masquer le guide</button>';
+}
+function gvis(){$("guide").hidden=gh;$("gshow").parentNode.hidden=!gh}
+$("gav").onclick=function(){var b=$("gb");b.hidden=!b.hidden;if(!b.hidden)guide()};
+$("gb").onclick=function(e){var g=e.target.dataset.go;if(g==="qr"){setAcc(2,true)}else if(g)document.querySelector('nav button[data-t="'+g+'"]').click();
+ if(e.target.id==="gx"){gh=true;try{localStorage.setItem(KEY+"-g","0")}catch(x){}gvis()}};
+$("gshow").onclick=function(e){e.preventDefault();gh=false;try{localStorage.removeItem(KEY+"-g")}catch(x){}gvis();$("gb").hidden=false;guide()};
+if(!gh){try{if(!localStorage.getItem(KEY+"-gs")){$("gb").hidden=false;localStorage.setItem(KEY+"-gs","1")}}catch(e){}}
+guide();gvis();
+/* Générateur de QR code */
+function qrMatrix(text,lvl){
+ var L=lvl==="L",ecl=L?1:0;
+ var EPB=L?[0,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26]:[0,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28];
+ var NB=L?[0,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12]:[0,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21];
+ var data=Array.prototype.slice.call(new TextEncoder().encode(text));
+ function raw(v){var r=(16*v+128)*v+64;if(v>=2){var a=Math.floor(v/7)+2;r-=(25*a-10)*a-55;if(v>=7)r-=36}return r}
+ function ndc(v){return Math.floor(raw(v)/8)-EPB[v]*NB[v]}
+ var ver=1;
+ for(;;ver++){if(ver>25)throw new Error("Texte trop long pour le QR code");
+  if(4+(ver<=9?8:16)+8*data.length<=ndc(ver)*8)break}
+ var bits=[];function put(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>>i)&1)}
+ put(4,4);put(data.length,ver<=9?8:16);data.forEach(function(b){put(b,8)});
+ var cap=ndc(ver)*8;put(0,Math.min(4,cap-bits.length));put(0,(8-bits.length%8)%8);
+ for(var pd=0xEC;bits.length<cap;pd^=0xEC^0x11)put(pd,8);
+ var cw=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|bits[i+j];cw.push(b)}
+ function mul(x,y){var z=0;for(var i=7;i>=0;i--){z=(z<<1)^((z>>>7)*0x11D);z^=((y>>>i)&1)*x}return z}
+ function div(deg){var r=[];for(var i=0;i<deg-1;i++)r.push(0);r.push(1);var root=1;
+  for(var i=0;i<deg;i++){for(var j=0;j<r.length;j++){r[j]=mul(r[j],root);if(j+1<r.length)r[j]^=r[j+1]}root=mul(root,2)}return r}
+ function rem(d,dv){var r=dv.map(function(){return 0});d.forEach(function(b){var f=b^r.shift();r.push(0);dv.forEach(function(c,i){r[i]^=mul(c,f)})});return r}
+ var nb=NB[ver],el=EPB[ver],rc=Math.floor(raw(ver)/8),ns=nb-rc%nb,sl=Math.floor(rc/nb),dv=div(el),blocks=[],k=0;
+ for(var i=0;i<nb;i++){var d=cw.slice(k,k+sl-el+(i<ns?0:1));k+=d.length;var e=rem(d,dv);if(i<ns)d.push(0);blocks.push(d.concat(e))}
+ var all=[];for(var i=0;i<blocks[0].length;i++)for(var j=0;j<nb;j++)if(i!==sl-el||j>=ns)all.push(blocks[j][i]);
+ var n=ver*4+17,M=[],F=[];for(var y=0;y<n;y++){M.push(new Array(n).fill(false));F.push(new Array(n).fill(false))}
+ function sf(x,y,v){M[y][x]=v;F[y][x]=true}
+ for(var i=0;i<n;i++){sf(6,i,i%2===0);sf(i,6,i%2===0)}
+ [[3,3],[n-4,3],[3,n-4]].forEach(function(p){for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++){var dist=Math.max(Math.abs(dx),Math.abs(dy)),x=p[0]+dx,y=p[1]+dy;if(x>=0&&x<n&&y>=0&&y<n)sf(x,y,dist!==2&&dist!==4)}});
+ var pos=[];if(ver>1){var na=Math.floor(ver/7)+2,step=Math.ceil((ver*4+4)/(na*2-2))*2;pos=[6];for(var p=n-7;pos.length<na;p-=step)pos.splice(1,0,p)}
+ for(var a=0;a<pos.length;a++)for(var b=0;b<pos.length;b++){
+  if((a===0&&b===0)||(a===0&&b===pos.length-1)||(a===pos.length-1&&b===0))continue;
+  for(var dy=-2;dy<=2;dy++)for(var dx=-2;dx<=2;dx++)sf(pos[a]+dx,pos[b]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1)}
+ function fmt(mask){var d=(ecl<<3)|mask,r=d;for(var i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);var bt=((d<<10)|r)^0x5412,g=function(i){return((bt>>>i)&1)!==0};
+  for(var i=0;i<=5;i++)sf(8,i,g(i));sf(8,7,g(6));sf(8,8,g(7));sf(7,8,g(8));for(var i=9;i<15;i++)sf(14-i,8,g(i));
+  for(var i=0;i<8;i++)sf(n-1-i,8,g(i));for(var i=8;i<15;i++)sf(8,n-15+i,g(i));sf(8,n-8,true)}
+ fmt(0);
+ if(ver>=7){var r=ver;for(var i=0;i<12;i++)r=(r<<1)^((r>>>11)*0x1F25);var vb=(ver<<12)|r;
+  for(var i=0;i<18;i++){var bt=((vb>>>i)&1)!==0,a=n-11+i%3,b=Math.floor(i/3);sf(a,b,bt);sf(b,a,bt)}}
+ var bi=0;
+ for(var right=n-1;right>=1;right-=2){if(right===6)right=5;
+  for(var vert=0;vert<n;vert++)for(var j=0;j<2;j++){var x=right-j,up=((right+1)&2)===0,y=up?n-1-vert:vert;
+   if(!F[y][x]&&bi<all.length*8){M[y][x]=((all[bi>>>3]>>>(7-(bi&7)))&1)!==0;bi++}}}
+ function mask(m){for(var y=0;y<n;y++)for(var x=0;x<n;x++){if(F[y][x])continue;var v;
+  switch(m){case 0:v=(x+y)%2===0;break;case 1:v=y%2===0;break;case 2:v=x%3===0;break;case 3:v=(x+y)%3===0;break;
+   case 4:v=(Math.floor(x/3)+Math.floor(y/2))%2===0;break;case 5:v=x*y%2+x*y%3===0;break;
+   case 6:v=(x*y%2+x*y%3)%2===0;break;default:v=((x+y)%2+x*y%3)%2===0}
+  if(v)M[y][x]=!M[y][x]}}
+ function pen(){var p=0,dark=0,s,i,x,y;
+  for(var t=0;t<2;t++){for(i=0;i<n;i++){var run=1,line="";
+   for(x=0;x<n;x++){var c=t?M[x][i]:M[i][x];line+=c?"1":"0";if(x>0){var pc=t?M[x-1][i]:M[i][x-1];if(c===pc){run++;if(run===5)p+=3;else if(run>5)p++}else run=1}}
+   var m1=line.match(/00001011101/g),m2=line.match(/10111010000/g);p+=40*((m1?m1.length:0)+(m2?m2.length:0))}}
+  for(y=0;y<n;y++)for(x=0;x<n;x++){if(M[y][x])dark++;if(x<n-1&&y<n-1&&M[y][x]===M[y][x+1]&&M[y][x]===M[y+1][x]&&M[y][x]===M[y+1][x+1])p+=3}
+  return p+(Math.ceil(Math.abs(dark*20-n*n*10)/(n*n))-1)*10}
+ var best=0,bp=1e9;
+ for(var m=0;m<8;m++){mask(m);fmt(m);var q=pen();if(q<bp){bp=q;best=m}mask(m)}
+ mask(best);fmt(best);return M;
+}
+function qrDraw(canvas,text,lvl,px){var M=qrMatrix(text,lvl),n=M.length,q=4,s=px||6,c=canvas.getContext("2d");
+ canvas.width=canvas.height=(n+2*q)*s;c.fillStyle="#fff";c.fillRect(0,0,canvas.width,canvas.height);c.fillStyle="#000";
+ for(var y=0;y<n;y++)for(var x=0;x<n;x++)if(M[y][x])c.fillRect((x+q)*s,(y+q)*s,s,s)}
+
+
+
+/* QR codes de dépôt Nextcloud (4 emplacements) */
+var DK="neps-depots",DEPOTS=null;
+function hasDep(){return!!DEPOTS&&DEPOTS.some(function(d){return d.u})}
+function dnorm(a){var o=[];for(var i=0;i<4;i++){var x=a&&a[i]||{};o.push({n:String(x.n||"").slice(0,40),u:String(x.u||"").trim()})}return o}
+function dload(){try{var a=JSON.parse(localStorage.getItem(DK));if(Array.isArray(a))return dnorm(a)}catch(e){}return null}
+function idb(){return new Promise(function(res,rej){var r=indexedDB.open("neps-compilateur",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv")};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}})}
+function idbSet(v){idb().then(function(d){d.transaction("kv","readwrite").objectStore("kv").put(v,DK)}).catch(function(){})}
+function idbGet(){return idb().then(function(d){return new Promise(function(res){var q=d.transaction("kv").objectStore("kv").get(DK);q.onsuccess=function(){res(q.result||null)};q.onerror=function(){res(null)}})}).catch(function(){return null})}
+function dsave(){var t=JSON.stringify(DEPOTS);try{localStorage.setItem(DK,t)}catch(e){}idbSet(t)}
+function OK(u){return/^https?:\/\/[^\s\/]+\/(?:[^\s]*\/)?s\/[A-Za-z0-9_-]{4,}\/?(?:[?#]\S*)?$/.test(u)}
+function dmsg(t){var m=$("dm");m.hidden=false;m.textContent=t}
+function dst(i){var d=DEPOTS[i],e=$("st"+i);
+ if(!d.u){e.textContent="Emplacement libre";e.className="st";return}
+ if(OK(d.u)){e.textContent=(/^http:/.test(d.u)?"⚠ Lien reconnu mais non sécurisé (http) — ":"✔ Lien reconnu — ")+"pensez à le tester";e.className="st ok"}
+ else{e.textContent="✘ Ce n'est pas un lien de partage Nextcloud (il contient /s/ suivi d'un code).";e.className="st ko"}}
+function renderDep(){
+ $("slots").innerHTML=DEPOTS.map(function(d,i){return'<div class="slot"><b>Emplacement '+(i+1)+'</b><input type="text" data-dn="'+i+'" placeholder="Nom (ex. 6A – endurance)" maxlength="40" value="'+esc(d.n)+'" aria-label="Nom de l\'emplacement '+(i+1)+'"><input type="text" data-du="'+i+'" placeholder="Lien de dépôt Nextcloud : https://…/s/…" value="'+esc(d.u)+'" aria-label="Lien de l\'emplacement '+(i+1)+'" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="st" id="st'+i+'"></div><div class="sb"><button class="btn alt" data-t="'+i+'">Tester</button><button class="btn" data-q="'+i+'">QR plein écran</button><button class="btn alt" data-x="'+i+'">Effacer</button></div></div>'}).join("");
+ for(var i=0;i<4;i++)dst(i);
+}
+function depUI(){$("depmsg").hidden=hasDep();accSt();guide()}
+function showQR(i){
+ var d=DEPOTS[i];if(!OK(d.u)){dmsg("Enregistrez d'abord un lien Nextcloud valide.");return}
+ var ov=$("qrfs");
+ if(!ov){ov=document.createElement("div");ov.id="qrfs";ov.setAttribute("role","dialog");ov.innerHTML='<div class="qt"></div><canvas aria-label="QR code de dépôt"></canvas><div class="qh">Scannez avec l\'appareil photo de la tablette, puis déposez votre fichier.</div><button class="btn" id="qclose">Fermer</button>';document.body.appendChild(ov);ov.onclick=function(){ov.hidden=true}}
+ try{var n=qrMatrix(d.u,"M").length,px=Math.max(3,Math.floor(Math.min(innerWidth*.9,innerHeight*.55)/(n+8)));qrDraw(ov.querySelector("canvas"),d.u,"M",px)}
+ catch(e){dmsg("Lien trop long pour un QR code.");return}
+ ov.querySelector(".qt").textContent=d.n||("QR "+(i+1));ov.hidden=false;
+}
+$("slots").onchange=function(e){var d=e.target.dataset,i;
+ if(d.dn!=null){i=+d.dn;DEPOTS[i].n=e.target.value.trim()}
+ else if(d.du!=null){i=+d.du;var v=e.target.value.trim();DEPOTS[i].u=v;e.target.value=v;dst(i)}
+ else return;
+ dsave();depUI()};
+$("slots").onclick=function(e){var d=e.target.dataset;
+ if(d.t!=null){var u=DEPOTS[+d.t].u;if(OK(u))window.open(u,"_blank","noopener");else dmsg("Enregistrez d'abord un lien Nextcloud valide.")}
+ else if(d.q!=null)showQR(+d.q);
+ else if(d.x!=null){var i=+d.x;if(!DEPOTS[i].u&&!DEPOTS[i].n)return;
+  if(confirm("Effacer l'emplacement "+(i+1)+(DEPOTS[i].n?" (« "+DEPOTS[i].n+" »)":"")+" ? Le partage Nextcloud lui-même ne sera pas supprimé.")){DEPOTS[i]={n:"",u:""};dsave();renderDep();depUI()}}};
+$("dcopy").onclick=async function(){
+ var t=DEPOTS.map(function(d,i){return d.u?(d.n||"QR "+(i+1))+" : "+d.u:""}).filter(Boolean).join("\n");
+ if(!t){dmsg("Aucun lien à copier.");return}
+ try{await navigator.clipboard.writeText(t);dmsg("Liste copiée. Collez-la dans une note : elle servira à restaurer vos liens.")}
+ catch(e){$("dpaste").value=t;$("dpaste").closest("details").open=true;$("dpaste").select();dmsg("Copie automatique impossible : copiez le texte sélectionné.")}};
+$("drest").onclick=function(){
+ var a=[];$("dpaste").value.split(/\r?\n/).forEach(function(l){var m=l.match(/https?:\/\/\S+/);if(m&&a.length<4)a.push({n:l.replace(m[0],"").replace(/[\s:;–—-]+$/,"").trim(),u:m[0]})});
+ if(!a.length){dmsg("Aucun lien trouvé dans le texte collé.");return}
+ if(hasDep()&&!confirm("Remplacer les liens actuels par ceux de la liste ?"))return;
+ DEPOTS=dnorm(a);dsave();renderDep();depUI();$("dpaste").value="";dmsg(a.length+" lien(s) restauré(s).")};
+DEPOTS=dload()||dnorm(null);
+if(hasDep())idbSet(JSON.stringify(DEPOTS));
+else idbGet().then(function(t){if(!t)return;try{var a=dnorm(JSON.parse(t));if(a.some(function(x){return x.u})){DEPOTS=a;dsave();renderDep();depUI()}}catch(e){}});
+renderDep();depUI();
+/* Volet 3 : scan des QR codes des applications élèves */
+/*QRRX*/
+function qrParse(t){var m=/^NEPS2:([0-9a-z]{4,8}):(\d+):(\d+):([A-Za-z0-9_-]+)$/.exec(String(t).trim());return m?{id:m[1],i:+m[2],n:+m[3],d:m[4]}:null}
+function b64bytes(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+async function inflateRaw(u){var ds=new DecompressionStream("deflate-raw"),w=ds.writable.getWriter();w.write(u);w.close();return new Uint8Array(await new Response(ds.readable).arrayBuffer())}
+async function qrPayload(parts){var u=b64bytes(parts.join("")),body=u.subarray(1);if(u[0]===1)body=await inflateRaw(body);return new TextDecoder().decode(body)}
+/*QRRXEND*/
+var SC={seqs:{},done:{},sig:null,n:0};
+function smsg(t,err){var m=$("sm");m.hidden=false;m.className="msg"+(err?" err":"");m.textContent=t}
+function loadJsQR(){return new Promise(function(res){var u=["vendor/jsQR.js","https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"],i=0;(function nx(){if(typeof window.jsQR==="function"||i>=u.length)return res();var s=document.createElement("script");s.src=u[i++];s.onload=nx;s.onerror=nx;document.head.appendChild(s)})()})}
+function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(a.destination);o.start();setTimeout(function(){o.stop();a.close()},130)}catch(e){}try{if(navigator.vibrate)navigator.vibrate(120)}catch(e){}}
+function hs(c){return c.map(function(x,i){x=String(x).replace(/^\ufeff/,"").replace(/^"|"$/g,"").trim().toLowerCase();return x||"colonne "+letter(i)}).join("|")}
+async function qrFinish(id,parts){
+ var text;try{text=await qrPayload(parts)}catch(e){return{ok:false,msg:"Lecture impossible (code abîmé ou navigateur trop ancien)."}}
+ var first=text.replace(/^\ufeff/,"").split(/\r?\n/)[0],sg=hs(first.split(/[;,\t]/)),ref=SC.sig||(S.head.length?hs(S.head):null);
+ if(ref&&sg!==ref)return{ok:false,msg:"En-têtes différents de ceux déjà importés : élève ignoré."};
+ SC.sig=sg;
+ var r=await ingest("QR-"+id+".csv",new TextEncoder().encode("\ufeff"+text).buffer);
+ finish([r]);
+ if(r.skip)return{ok:false,msg:"Déjà importé ("+r.skip+")."};
+ return{ok:true,added:r.added}
+}
+async function scanFrame(txt){
+ var p=qrParse(txt);if(!p)return;
+ var st=$("sct"),pr=$("scp"),nn=$("scn");
+ if(SC.done[p.id]){st.textContent=SC.done[p.id];return}
+ var q=SC.seqs[p.id]||(SC.seqs[p.id]={n:p.n,parts:{},c:0});
+ if(q.n!==p.n)return;
+ if(!q.parts[p.i]){q.parts[p.i]=p.d;q.c++}
+ pr.max=q.n;pr.value=q.c;
+ var miss=[],k;for(k=1;k<=q.n;k++)if(!q.parts[k])miss.push(k);
+ st.textContent="Élève en cours : "+q.c+"/"+q.n+" codes lus"+(miss.length?" — manquants : "+miss.join(", "):"");
+ if(q.c<q.n)return;
+ var parts=[];for(k=1;k<=q.n;k++)parts.push(q.parts[k]);delete SC.seqs[p.id];
+ st.textContent="Traitement…";
+ var res=await qrFinish(p.id,parts);
+ if(res.ok){SC.n++;beep();SC.done[p.id]="✔ Élève importé ("+res.added+" ligne(s)). Passez au suivant.";nn.textContent="Élèves importés : "+SC.n}
+ else SC.done[p.id]="✘ "+res.msg;
+ st.textContent=SC.done[p.id];
+}
+async function scanOpen(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){smsg("Caméra indisponible sur cet appareil.",1);return}
+ var det=window.BarcodeDetector?new BarcodeDetector({formats:["qr_code"]}):null;
+ if(!det)await loadJsQR();
+ if(!det&&typeof window.jsQR!=="function"){smsg("Lecture des QR codes indisponible sur cet appareil : connectez-vous à internet une fois pour la télécharger, ou ajoutez jsQR.js dans le dossier vendor (voir le mode d'emploi).",1);return}
+ var ov=document.createElement("div");ov.id="scov";
+ ov.innerHTML='<video playsinline muted></video><div id="sct" class="sct">Placez le QR code de l\'élève dans le cadre…</div><progress id="scp" max="1" value="0"></progress><div id="scn" class="scn">Élèves importés : '+SC.n+'</div><button class="btn" id="scx">Terminer</button>';
+ document.body.appendChild(ov);
+ var v=ov.querySelector("video"),stream,stop=false;
+ function end(){stop=true;if(stream)stream.getTracks().forEach(function(t){t.stop()});ov.remove();smsg(SC.n+" élève(s) importé(s) pendant ce scan.")}
+ $("scx").onclick=end;
+ try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});v.srcObject=stream;v.play().catch(function(){})}
+ catch(e){ov.remove();smsg("Accès à la caméra refusé.",1);return}
+ var cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+ while(!stop){
+  var txt=null;
+  try{
+   if(det){var r=await det.detect(v);if(r.length)txt=r[0].rawValue}
+   else if(v.videoWidth){var sc=Math.min(1,960/v.videoWidth);cv.width=Math.round(v.videoWidth*sc);cv.height=Math.round(v.videoHeight*sc);cx.drawImage(v,0,0,cv.width,cv.height);var im=cx.getImageData(0,0,cv.width,cv.height),c=window.jsQR(im.data,im.width,im.height,{inversionAttempts:"dontInvert"});if(c)txt=c.data}
+  }catch(e){}
+  if(txt){try{await scanFrame(txt)}catch(e){}}
+  await new Promise(function(r){setTimeout(r,120)});
+ }
+}
+/* Accordéon du panneau 1 */
+var AO=1;
+function setAcc(n,scroll){AO=n;document.querySelectorAll(".ai").forEach(function(s,i){var on=i+1===n,b=s.querySelector(".ah");s.classList.toggle("open",on);b.setAttribute("aria-expanded",on?"true":"false");b.querySelector(".ac").textContent=on?"▾":"▸";s.querySelector(".ab").hidden=!on});if(scroll&&n){var a=$("a"+n);if(a)a.scrollIntoView({behavior:"smooth",block:"start"})}guide()}
+function accSt(){
+ var nq=S.files.filter(function(f){return/^QR-/.test(f.name)}).length,nf=S.files.length-nq;
+ $("as1").textContent=nf?nf+" fichier(s)":"";
+ $("as2").textContent=hasDep()?DEPOTS.filter(function(d){return d.u}).length+" QR code(s)":"aucun lien";
+ $("as3").textContent=nq?nq+" élève(s) scanné(s)":"";
+ $("fsum").textContent=S.files.length?"Fichiers importés : "+S.files.length+" ("+S.rows.length+" lignes)":"Aucun fichier importé";
+}
+$("acc").onclick=function(e){var h=e.target.closest(".ah");if(h){var n=+h.dataset.a;setAcc(AO===n?0:n)}};
+$("depgo").onclick=function(e){e.preventDefault();setAcc(2,true)};
+$("sbtn").onclick=scanOpen;
+document.addEventListener("paste",function(e){var f=e.clipboardData&&e.clipboardData.files;if(f&&f.length){e.preventDefault();handle(Array.from(f))}});
+$("pbtn").onclick=function(){var t=$("ptxt").value.trim();if(!t)return;var d=new Date(),p=function(n){return String(n).padStart(2,"0")};handle([new File(["\ufeff"+t],"Collage-"+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+".csv",{type:"text/csv"})]);$("ptxt").value=""};
+accSt();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+if(/[?&]shared=1/.test(location.search)&&window.caches)caches.open("bilan-shared").then(async function(c){var ks=await c.keys(),out=[];for(var i=0;i<ks.length;i++){var r=await c.match(ks[i]);out.push(await ingest(decodeURIComponent(ks[i].url.split("/").pop()),await r.arrayBuffer()));await c.delete(ks[i])}if(out.length)finish(out);history.replaceState(null,"",location.pathname)});
+})();
+</script>
+</body>
+</html>
